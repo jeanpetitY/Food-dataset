@@ -437,7 +437,7 @@ usda_importer = USDA_Importer(orkg_importer=orkg_importer)
 
 data = usda_importer.open_usda_food_component_data(file_path="json/usda_uecfood256.json")
 
-statement_id = usda_importer.process_usda_food_component_data(usda_data=data[133:152], dataset_name="uecfood256")
+statement_id = usda_importer.process_usda_food_component_data(usda_data=data[152:171], dataset_name="uecfood256")
 
 # for i in range(2129224, 2129230):
 #     resource_id = f"R{i}"

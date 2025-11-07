@@ -10,12 +10,8 @@ def count_files_in_directory(directory_path):
     # Fist check if folder if exist
     if not os.path.exists(directory_path):
         raise FileNotFoundError(f"Directory path not found: {directory_path}")
-    
-    total_files = 0
-    for root, dirs, files in os.walk(directory_path):
-        total_files += len(files)
-    
-    return total_files
+
+    return sum(len(files) for root, dirs, files in os.walk(directory_path))
 
 
 def list_subdirectories(directory_path):
@@ -26,9 +22,12 @@ def list_subdirectories(directory_path):
     # Fist check if folder if exist
     if not os.path.exists(directory_path):
         raise FileNotFoundError(f"Directory path not found: {directory_path}")
-    
-    subdirs = [d for d in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, d))]
-    return subdirs
+
+    return [
+        d
+        for d in os.listdir(directory_path)
+        if os.path.isdir(os.path.join(directory_path, d))
+    ]
 
 def get_total_file_count(directory_path):
     
