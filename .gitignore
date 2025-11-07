@@ -6,3 +6,5 @@ __pycache__/
 data/
 logs/
 uecfood256_sampled/
+model_saved/
+data.json

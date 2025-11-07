@@ -137,15 +137,12 @@ class ImportORKGContribution:
         elif classes:
             response = self.orkg.resources.add(label=label, classes=classes)
             # response = self.update_resource(resource_id=resource_id, classes=classes)
-            
-        
+
+
         if response.succeeded and isinstance(response.content, dict):
-            resource_id = response.content.get("id")
-            # print(f"Resource created : {label} ({resource_id})")
-            return resource_id
-        else:
-            print(f"Error during predicate creation '{label}': {response.content}")
-            return None
+            return response.content.get("id")
+        print(f"Error during predicate creation '{label}': {response.content}")
+        return None
         
     def create_property(self, label):
         """Create an ORKG property (predicate) if it does not already exist.
@@ -155,12 +152,9 @@ class ImportORKGContribution:
             str or None: The ID of the created property, or None if creation failed."""
         response = self.orkg.predicates.add(label=label)
         if response.succeeded and isinstance(response.content, dict):
-            prop_id = response.content.get("id")
-            # print(f"property created : {label} ({prop_id})")
-            return prop_id
-        else:
-            print(f"Error during predicate creation '{label}': {response.content}")
-            return None
+            return response.content.get("id")
+        print(f"Error during predicate creation '{label}': {response.content}")
+        return None
         
     def delete_resource(self, resource_id):
         """Delete an ORKG resource by its ID.
@@ -198,29 +192,22 @@ class ImportORKGContribution:
         Returns:
             str or None: The ID of the created statement, or None if creation failed.
         """
-        resource_id = self.get_resource(res_id=res_id, label=resource_label, classes=resource_classes[0] if resource_classes else "")
-        if not resource_id:
-            resource_id = self.create_resource(label=resource_label, classes=resource_classes)
-        prop_id = self.get_property(label=prop_label, pid=pid)
-        if not prop_id:
-            prop_id = self.create_property(prop_label)
+        resource_id = self.get_resource(res_id=res_id, label=resource_label, classes=resource_classes[0] if resource_classes else "") or self.create_resource(label=resource_label, classes=resource_classes)
+        prop_id = self.get_property(label=prop_label, pid=pid) or self.create_property(prop_label)
         if is_simple_statement:
             literal_id = self.create_litteral(label=literal_label, data_type=data_type)
         else:
             literal_id = self.create_litteral(label=literal_label, data_type=data_type, classes=literal_classes)
         if not resource_id or not prop_id or not literal_id:
-            print("Error: Unable to create resource, property, or literal.")
+            # print("Error: Unable to create resource, property, or literal.")
             return None
-        
+
         response = self.orkg.statements.add(subject_id=resource_id, predicate_id=prop_id, object_id=literal_id)
-        
+
         if response.succeeded and isinstance(response.content, dict):
-            statement_id = response.content.get("id")
-            # print(f"statement created for subject={resource_label} prop={prop_label} object=({literal_label})")
-            return statement_id
-        else:
-            print(f"Error during predicate creation {response.content}")
-            return None
+            return response.content.get("id")
+        print(f"Error during predicate creation {response.content}")
+        return None
         
         
 class USDA_Importer:
@@ -239,16 +226,15 @@ class USDA_Importer:
         data_type="resource"
     ):
         """ Add a food component statement to ORKG using the ImportORKGContribution instance."""
-        statement_id = self.orkg_importer.create_resource_statement(
+        return self.orkg_importer.create_resource_statement(
             resource_label=resource_label,
             prop_label=prop_label,
             literal_label=literal_label,
             is_simple_statement=is_simple_statement,
             resource_classes=resource_classes,
             literal_classes=literal_classes,
-            data_type=data_type
+            data_type=data_type,
         )
-        return statement_id
     
     def add_simple_statement_to_food_component_template(
         self, 
@@ -260,15 +246,14 @@ class USDA_Importer:
         data_type="xsd:string"
         ):
         """ Add a statement to a food component template in ORKG using the ImportORKGContribution instance."""
-        statement_id = self.orkg_importer.create_resource_statement(
+        return self.orkg_importer.create_resource_statement(
             resource_label=resource_label,
             prop_label=prop_label,
             literal_label=literal_label,
             is_simple_statement=is_simple_statement,
             resource_classes=resource_classes,
-            data_type=data_type
+            data_type=data_type,
         )
-        return statement_id
     
     def add_statement_to_USDA_resource_dataset(
         self, 
@@ -281,16 +266,15 @@ class USDA_Importer:
         data_type="resource"
     ):
         """ Add a statement to link USDA food resource to USDA dataset resource in ORKG using the ImportORKGContribution instance."""
-        statement_id = self.orkg_importer.create_resource_statement(
+        return self.orkg_importer.create_resource_statement(
             res_id=res_id,
             prop_label=prop_label,
             literal_label=literal_label,
             is_simple_statement=is_simple_statement,
             resource_classes=resource_classes,
             literal_classes=literal_classes,
-            data_type=data_type
+            data_type=data_type,
         )
-        return statement_id
     
     def open_usda_food_component_data(self, file_path: str) -> dict:
         """ Open and read USDA food component data from a JSON file.
@@ -303,14 +287,12 @@ class USDA_Importer:
             self.usda_data = usda_data
         return self.usda_data
     
-    def process_usda_food_component_data(self, dataset_name="UECFOOD256"):
+    def process_usda_food_component_data(self, usda_data: list, dataset_name="UECFOOD256"):
         """Process USDA food component data and add it to ORKG using the ImportORKGContribution instance."""
-        usda_data = self.usda_data
-        
-        for item in usda_data:
+        for i, item in enumerate(usda_data, start=1):
             # === 1️⃣ Create the main resource for the food ===
             resource_label = f"{item['food_name'].lower().replace(' ', '_')}_{dataset_name.lower()}"
-            print(f"\n=======Processing food item: {resource_label}===================")
+            print(f"\n=======Processing food item: {resource_label} item = {i} ===================")
 
             # Main class : "USDA Food" (C34009)
             food_id = self.orkg_importer.create_resource(
@@ -368,6 +350,14 @@ class USDA_Importer:
                     literal_label=item["source_url"],
                     data_type="xsd:uri"
                 )
+            if item.get("source_url"):
+                self.orkg_importer.create_resource_statement(
+                    resource_label=resource_label,
+                    resource_classes=["C124011"],
+                    prop_label="food image",
+                    literal_label=item["image"],
+                    data_type="xsd:uri"
+                )
 
             # === 3️⃣ Add nutrient as sub resources ===
             print("Adding nutrients and his values as sub-resources...")
@@ -411,7 +401,7 @@ class USDA_Importer:
                         literal_label=str(value_unit),
                         data_type="xsd:string"
                     )
-            
+
             # add resources as contribution to USDA dataset resource
             print("Linking food resource to USDA dataset resource...")
             self.add_statement_to_USDA_resource_dataset(
@@ -419,43 +409,13 @@ class USDA_Importer:
             )
 
             print(f"✅ Finished processing {resource_label}")
+        print("\nAll food items have been processed.")
 
             
         
         
-    
-    # def add_statement_valute_to_food_component_template(
-    #     self, 
-    #     resource_label, 
-    #     literal_label, 
-    #     pid="P5086", # value property to food component
-    #     is_simple_statement: bool = False, 
-    #     resource_classes=["C34009"], # Food component classe
-    #     literal_classes=["C23008"],  # Quantity value classe( numeric value with unit)
-    #     data_type="resource",
-    #     # pids=["P45075", "P45076"] # P45075 numeric value, P45076 unit
-    #     ):
-    #     """ Add a statement to a food component template in ORKG using the ImportORKGContribution instance.
-    #     value to food component consit to add his numeric value and his unit
-    #     """
-    #     statement_id = self.orkg_importer.create_resource_statement(
-    #         resource_label=resource_label,
-    #         pid=pid,
-    #         literal_label=literal_label,
-    #         is_simple_statement=is_simple_statement,
-    #         literal_classes=literal_classes,
-    #         resource_classes=resource_classes,
-    #         data_type=data_type
-    #     )
-    #     return statement_id
-        
         
     
-
-# classe
-#  food component C34009
-# USDA Food C124011
-#  value property P5086
 
 EMAIL=os.getenv("EMAIL")
 PASSWORD=os.getenv("PASSWORD")
@@ -475,9 +435,9 @@ usda_importer = USDA_Importer(orkg_importer=orkg_importer)
 # )
 # print(statement_id)
 
-data = usda_importer.open_usda_food_component_data(file_path="data.json")
+data = usda_importer.open_usda_food_component_data(file_path="json/usda_uecfood256.json")
 
-statement_id = usda_importer.process_usda_food_component_data(dataset_name="food101")
+statement_id = usda_importer.process_usda_food_component_data(usda_data=data[133:152], dataset_name="uecfood256")
 
 # for i in range(2129224, 2129230):
 #     resource_id = f"R{i}"

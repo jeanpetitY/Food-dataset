@@ -2,9 +2,9 @@ import json
 import os
 
 # === CONFIGURATION ===
-INPUT_JSON = "data.json"  # ton fichier d’entrée
-OUTPUT_JSON = "usda_foods.json"  # fichier de sortie
-BASE_URL = "https://api.tsotsa.org/TSOTSA/other_dataset/uecfood256/"
+INPUT_JSON = "food101_usda.json"  # ton fichier d’entrée
+OUTPUT_JSON = "usda_food101.json"  # fichier de sortie
+BASE_URL = "https://api.tsotsa.org/other_dataset/food101/"
 
 # === Fonction pour nettoyer les noms ===
 def clean_name(name: str) -> str:
@@ -24,8 +24,8 @@ with open(INPUT_JSON, "r", encoding="utf-8") as f:
 
 # === Ajouter la propriété "image" à chaque entrée ===
 for item in data:
-    if "name" in item:
-        clean = clean_name(item["name"])
+    if "class" in item:
+        clean = clean_name(item["class"])
         image_url = f"{BASE_URL}{clean}.jpg"
         item["image"] = image_url
     else:
