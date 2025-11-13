@@ -2,9 +2,9 @@ import json
 import os
 
 # === CONFIGURATION ===
-INPUT_JSON = "food101_usda.json"  # ton fichier d’entrée
-OUTPUT_JSON = "usda_food101.json"  # fichier de sortie
-BASE_URL = "https://api.tsotsa.org/other_dataset/food101/"
+INPUT_JSON = "json/old/fruitveg81_usda_enriched.json"  # ton fichier d’entrée
+OUTPUT_JSON = "json/new/usda_fruitveg81.json"  # fichier de sortie
+BASE_URL = "https://api.tsotsa.org/other_dataset/fruitveg81/"
 
 # === Fonction pour nettoyer les noms ===
 def clean_name(name: str) -> str:

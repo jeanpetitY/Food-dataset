@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from typing import Literal
 import json
-
+import time
 DATA_TYPE = Literal["xsd:string", "xsd:int", "xsd:float", "xsd:url", "resource"]
 
 load_dotenv()
@@ -78,14 +78,11 @@ class ImportORKGContribution:
         if not response.all_succeeded:
             print(f"Error: {response.content}")
             return None
-        
-        if isinstance(response.content, list) and len(response.content) > 0:
-            resource_id = response.content[0]["id"]
-            resource_label = response.content[0]["label"]
-            # print(f"Resource found : {resource_label} ({resource_id})")
-            return resource_id
-        else:
+
+        if not isinstance(response.content, list) or len(response.content) <= 0:
             return None
+        resource_label = response.content[0]["label"]
+        return response.content[0]["id"]
         
         
     def update_resource(self, resource_id, classes: list = []):
@@ -95,8 +92,7 @@ class ImportORKGContribution:
             classes (list): List of class IDs to assign to the resource.
         Returns:
             dict: The response from the ORKG API."""
-        response = self.orkg.resources.update(id=resource_id, classes=classes)
-        return response
+        return self.orkg.resources.update(id=resource_id, classes=classes)
     
     def create_litteral(self, label, data_type: DATA_TYPE = "xsd:string", classes: list = []):
         """
@@ -211,9 +207,17 @@ class ImportORKGContribution:
         
         
 class USDA_Importer:
-    def __init__(self, orkg_importer: ImportORKGContribution):
+    def __init__(
+        self, orkg_importer: ImportORKGContribution, 
+        food_class_id="C124011",
+        component_class_id="C34009",
+        usda_dataset_resource_id="R2129182"
+    ):
         self.orkg_importer = orkg_importer
         self.usda_data = []
+        self.food_class_id = food_class_id
+        self.component_class_id = component_class_id
+        self.usda_dataset_resource_id = usda_dataset_resource_id
     
     def add_food_component_statement(
         self, 
@@ -221,8 +225,8 @@ class USDA_Importer:
         prop_label, 
         literal_label, 
         is_simple_statement: bool = False, 
-        resource_classes=["C124011"], 
-        literal_classes=["C34009"],
+        # resource_classes=["C124011"], 
+        # literal_classes=["C34009"],
         data_type="resource"
     ):
         """ Add a food component statement to ORKG using the ImportORKGContribution instance."""
@@ -231,8 +235,8 @@ class USDA_Importer:
             prop_label=prop_label,
             literal_label=literal_label,
             is_simple_statement=is_simple_statement,
-            resource_classes=resource_classes,
-            literal_classes=literal_classes,
+            resource_classes=[self.food_class_id],
+            literal_classes=[self.component_class_id],
             data_type=data_type,
         )
     
@@ -242,7 +246,7 @@ class USDA_Importer:
         prop_label, 
         literal_label, 
         is_simple_statement: bool = True, 
-        resource_classes=["C34009"],
+        # resource_classes=["C34009"],
         data_type="xsd:string"
         ):
         """ Add a statement to a food component template in ORKG using the ImportORKGContribution instance."""
@@ -251,7 +255,7 @@ class USDA_Importer:
             prop_label=prop_label,
             literal_label=literal_label,
             is_simple_statement=is_simple_statement,
-            resource_classes=resource_classes,
+            resource_classes=[self.component_class_id],
             data_type=data_type,
         )
     
@@ -259,20 +263,20 @@ class USDA_Importer:
         self, 
         literal_label="apple_pie_food_101", 
         prop_label="has contribution", 
-        res_id="R2129182", 
+        # res_id="R2129182", 
         is_simple_statement: bool = False, 
         resource_classes=["Dataset"], 
-        literal_classes=["C124011"],
+        # literal_classes=["C124011"],
         data_type="resource"
     ):
         """ Add a statement to link USDA food resource to USDA dataset resource in ORKG using the ImportORKGContribution instance."""
         return self.orkg_importer.create_resource_statement(
-            res_id=res_id,
+            res_id=self.usda_dataset_resource_id,
             prop_label=prop_label,
             literal_label=literal_label,
             is_simple_statement=is_simple_statement,
             resource_classes=resource_classes,
-            literal_classes=literal_classes,
+            literal_classes=[self.food_class_id],
             data_type=data_type,
         )
     
@@ -297,10 +301,10 @@ class USDA_Importer:
             # Main class : "USDA Food" (C34009)
             food_id = self.orkg_importer.create_resource(
                 label=resource_label, 
-                classes=["C124011"]  # Classe for USDA Food
+                classes=["C124011"]  # Class for USDA Food
             )
 
-            # === 2️⃣ add simple attribut of the food ===
+            # === 2️⃣ add simple attribute of the food ===
             print("Adding simple attributes...(name, ingredients, description, source link)")
 
             # Food name
@@ -309,6 +313,14 @@ class USDA_Importer:
                 resource_classes=["C124011"],
                 literal_label=item["food_name"],
                 prop_label="usda food name",
+                data_type="xsd:string"
+            )
+            # Food class name
+            self.orkg_importer.create_resource_statement(
+                resource_label=resource_label,
+                resource_classes=["C124011"],
+                literal_label=item["class"],
+                prop_label="food class name",
                 data_type="xsd:string"
             )
 
@@ -322,11 +334,11 @@ class USDA_Importer:
                     data_type="xsd:string"
                 )
 
-            # Ingrédients (liste: Join text)
+            # Ingredients (list: Join text)
             if item.get("ingredients"):
                 ingredients_field = item["ingredients"]
 
-                # Vérifier le type avant de joindre
+                # check the type before added it
                 if isinstance(ingredients_field, list):
                     ingredients_str = ", ".join([ing.strip() for ing in ingredients_field if isinstance(ing, str) and ing.strip()])
                 elif isinstance(ingredients_field, str):
@@ -336,7 +348,7 @@ class USDA_Importer:
                 self.orkg_importer.create_resource_statement(
                     resource_label=resource_label,
                     resource_classes=["C124011"],
-                    literal_label=ingredients_str,
+                    literal_label=ingredients_str or "N/A",
                     prop_label="usda food ingredient",
                     data_type="xsd:string"
                 )
@@ -364,7 +376,7 @@ class USDA_Importer:
             if item.get("nutrients"):
                 for nutrient in item["nutrients"]:
                     nutrient_name = nutrient["name"]
-                    value = nutrient["value"]
+                    value = nutrient["value"] if nutrient["value"] is not None else 0
                     unit = nutrient["unit"]
                     value_unit = f"{value} {unit}".strip()
 
@@ -401,6 +413,7 @@ class USDA_Importer:
                         literal_label=str(value_unit),
                         data_type="xsd:string"
                     )
+                    # time.sleep(3)
 
             # add resources as contribution to USDA dataset resource
             print("Linking food resource to USDA dataset resource...")
@@ -409,6 +422,7 @@ class USDA_Importer:
             )
 
             print(f"✅ Finished processing {resource_label}")
+            # Pause every 10 items to avoid overwhelming the server
         print("\nAll food items have been processed.")
 
             
@@ -435,9 +449,9 @@ usda_importer = USDA_Importer(orkg_importer=orkg_importer)
 # )
 # print(statement_id)
 
-data = usda_importer.open_usda_food_component_data(file_path="json/usda_uecfood256.json")
+data = usda_importer.open_usda_food_component_data(file_path="json/new/usda_fruitveg81.json")
 
-statement_id = usda_importer.process_usda_food_component_data(usda_data=data[152:171], dataset_name="uecfood256")
+statement_id = usda_importer.process_usda_food_component_data(usda_data=data[47:], dataset_name="fruitveg81")
 
 # for i in range(2129224, 2129230):
 #     resource_id = f"R{i}"
