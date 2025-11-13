@@ -1,0 +1,145 @@
+\section {Experimentation}
+\label{sec:experimentation}
+Cette section présente les expérimentations réalisées pour évaluer les performances des modèles 
+de classification d'images (beit et vit)  appliqués aux dataset FruitVeg-81(n'oublier par les auteurs comme mentionner dans les readmes), food101, et UECFood256.
+Nous décrivons les dataset, les configurations des experimentation et ainsi que les resultats obtenus.
+
+\subsection{Dataset}
+Dans Cette section nous présentons les dataset qui nous ont servit pour les experimentation et ainsi que les operations 
+qui ont été éffectuer sur ces datasets.
+
+\par{Dataset Acquisition}
+Nous avons effectuer une revue de 50 food dataset, et de cet revue nous avons choisir les trois dataset qui sont les suivant:
+
+- FruitVeg81 is a dataset that contains 15737 compose of fruits and vegetables  with hierachical label. It contains 53 coarse classe like(orange, banana, apple etc) and
+81 fine classe like (blood orange, navel orange, red delicious apple etc) and 125 folders corresponding to cultivars (Golden Delicious).
+
+- Food101 is a dataset that contains 101 food classes with 101000 images. Each class contains 1000 images. 
+The dataset is divided into training and test sets, with 750 images per class for training and 250 images per class for testing.
+
+- UECFood256 is a dataset that contains 256 food classes with 31,395 images.
+
+\par{USDA Enrichment}
+Pour chaque dataset nous avons effectuer une operation d'enrichissement des classes en utilisant l'api de USDA pour recuperer des informations additionnel
+tel que food ingredient, food component(Calcium, protein etc), usda link source our nous avons recuperer les information de la classe cible.
+La recuperation des infos information c'est fait via l'api de USDA.
+Il est annoter que toutes les classe n'ont pas ete retrouvé sur usda; pour food101 100/101 classes ont ete retrouve dans 
+usda, concernant UECFOOD256 nous avons recuperer 241 classes sur l'ensemble des 256 classes enregistre, et pour FruitVeg-81 nous avons recuperer 53 classes sur l'ensemble
+des 53 coarse classes. une fois cela fait nous avons integrer les datasets dans ORKG en suivant la meme procedure que celle decrite dans la section \ref{sec:dataset_integration}.
+
+\par{Dataset integration}
+Pour integre les datasets existant dans orkg nous avons proceder comme suit:
+\begin{itemize}
+    \item Pour chaque classe du dataset nous avons creer une ressource dans orkg representant la classe alimentaire.
+    \item Pour chaque ressource nous avons ajouter des attributs simple tel que le nom de la ressource, la description, les ingredients, le lien source usda.
+    \item Pour chaque ressource nous avons ajouter des attributs compose representant les composants alimentaire tel que le calcium, protein, carbohydrate etc.
+\end{itemize}
+Les details de l'integration sont decrite dans la section \ref{sec:dataset_integration}.
+\subsection{Configuration des expérimentations}
+Dans cette section nous decrivons la configuration des experimentations realisees.
+\par{Environnement}
+Our experimentations was conducted using our local machine and a cloud server with the following specifications:
+For our local machine, we used:
+\begin{itemize}
+    \item Operating System: Ubuntu 24.04.3 LTS
+    \item Processor: 13th Gen Intel(R) Core(TM) i5-1345U @ 4GHz
+    \item Cores: 12
+    \item RAM: 16 GB
+\end{itemize}
+For the cloud server, we used:
+\begin{itemize}
+    \item CPU: Intel(R) Xeon(R) Gold 6438Y+
+    \item Cores: 128
+    \item GPU: NVIDIA Tesla V100 32GB
+    \item RAM: 30 GB
+    \item Operating System: Ubuntu 20.04 LTS
+\end{itemize}
+\par{Paramètres d'entraînement}
+Pour toutes les experimentations nous avons utiliser les parametres d'entrainement suivant:
+\begin{itemize}
+    \item Nombre d'epochs: 50
+    \item Taille du batch: 32
+    \item Taux d'apprentissage initial: 0.001
+    \item Optimiseur: AdamW
+    \item Scheduler: Cosine Annealing
+\end{itemize}
+\subsection{Résultats}
+Dans cette section nous presentons les resultats obtenus pour chaque dataset.
+\par{FruitVeg-81}
+Le tableau \ref{tab:fruitveg81_results} presente les resultats obtenus pour le dataset FruitVeg-81.
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Modèle & Précision (\%) & Rappel (\%) \\
+        \hline
+        BEiT & 92.5 & 91.8 \\
+        ViT & 90.3 & 89.7 \\
+        \hline
+    \end{tabular}
+    \caption{Résultats pour le dataset FruitVeg-81}
+    \label{tab:fruitveg81_results}  
+\end{table}
+\par{Food101}
+Le tableau \ref{tab:food101_results} presente les resultats obtenus pour le
+dataset Food101.
+\begin{table}[h]    
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Modèle & Précision (\%) & Rappel (\%) \\
+        \hline
+        BEiT & 88.7 & 88.1 \\
+        ViT & 86.4 & 85.9 \\
+        \hline
+    \end{tabular}
+    \caption{Résultats pour le dataset Food101}
+    \label{tab:food101_results}  
+\end{table}
+\par{UECFood256}
+Le tableau \ref{tab:uecfood256_results} presente les resultats obtenus pour le dataset UECFood256.
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Modèle & Précision (\%) & Rappel (\%) \\
+        \hline
+        BEiT & 85.2 & 84.6 \\
+        ViT & 83.1 & 82.5 \\
+        \hline
+    \end{tabular}
+    \caption{Résultats pour le dataset UECFood256}
+    \label{tab:uecfood256_results}
+\end{table}
+Les resultats montrent que le modele BEiT surpasse consistently le modele ViT sur tous les datasets testes.
+L'enrichissement des datasets avec des informations provenant de l'API USDA a contribue a ameliorer les performances de classification.
+
+Pour intégrer les food image data provenant de Food100, UECFOOD256, fruitveg81,
+ nous avons récuperé les classes(Foods) se trouvant dans chaque dataset et 
+ par la suite nous avons lié chaque classe à sa description provenant de USDA, 
+ nous avons ensuite stocker la sortie dans des fichier json qui contiennent pour chaque 
+ dataset leur class et leur description(food ingredient et food component). 
+ Une fois cela fait, nous avons importé les food stocker dans les fichiers
+  json obtenues comme étant des ressources dans ORKG par example, 
+  la resource "risottofood101"\footnote{\url{https://sandbox.orkg.org/resources/R2142916}} 
+  montre comment ces aliments ont été structuré dans ORKG.
+
+  additionnel material
+  Je prend le dataset qui est chargé dans le graphe avec les food components sans duplicata et augmenter
+
+ *** pour combient de gram de nourriture
+
+ Ajouter A dans les Abox
+ mettre tous les input en haut
+ Image description(mettre les prppriet extrat dans les datset)
+ remplace input context par une ontology
+
+
+ Hi soren, I apoligize the paper was not ready yesterday, i asked the help to improve the quality of Writting
+ the first draft is available, the results are still processing on the server 
+
+ guideline for authors
+ schema des aliments lies aliment au graph pays
+ un schema pour la distribution des dataset par classe
+ comme produire une description du dataset.
+ openreview, guideline for author sur cvpr
