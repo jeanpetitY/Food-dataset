@@ -1,1 +1,7 @@
 dotenv
+datasets
+transformers
+requests
+sklearn
+PIL
+torchvision
